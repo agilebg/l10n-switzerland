@@ -20,7 +20,7 @@
 from openerp import models, fields, api, _
 
 
-class ResPartnerBank(modles.Model):
+class ResPartnerBank(models.Model):
     """
     Inherit res.partner.bank class in order to add swiss specific fields
     such as:
@@ -30,4 +30,4 @@ class ResPartnerBank(modles.Model):
     """
     _inherit = "res.partner.bank"
 
-    dta_code = fields.char('DTA code')
+    dta_code = fields.Char('DTA code')

@@ -24,7 +24,7 @@ from openerp import models, fields, api, _
 class PaymentOrder(models.Model):
     _inherit = 'payment.order'
 
-    dta_ids = fields.one2many(
+    dta_ids = fields.One2many(
         'ir.attachment',
         'res_id',
         domain=[('res_model', '=', 'payment.order'),

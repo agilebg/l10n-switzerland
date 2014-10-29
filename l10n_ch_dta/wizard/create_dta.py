@@ -26,7 +26,7 @@ import base64
 import unicode2ascii
 
 from openerp import models, fields, api, _
-from tools import mod10r
+from openerp.tools import mod10r
 
 TRANS = [(u'é', 'e'),
          (u'è', 'e'),
