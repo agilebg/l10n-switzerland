@@ -539,10 +539,10 @@ class DTAFileGenerator(models.TransientModel):
     @api.model
     def _initialize_elec_context(self, data):
         elec_context = {}
-        payment_obj = self.pool['payment.order']
+        payment_obj = self.env['account.journal']
         payment = payment_obj.browse(data['id'])
         elec_context['uid'] = str(uid)
-        elec_context['creation_date'] = time.strftime('%y%m%d')
+        elec_context['creation_date'] = fields.Date.today()
         if not payment.mode:
             raise orm.except_orm(
                 _('Error'),
@@ -667,14 +667,13 @@ class DTAFileGenerator(models.TransientModel):
         self._set_bank_data(cr, uid, data, pline,
                             elec_context, seq, context=context)
         if pline.order_id.date_scheduled:
-            date_value = datetime.strptime(pline.order_id.date_scheduled,
-                                           '%Y-%m-%d')
+            date_value = fields.Datetime.from_string(
+                pline.order_id.date_scheduled)
         elif pline.date:
-            date_value = datetime.strptime(pline.date,
-                                           '%Y-%m-%d')
+            date_value = fields.Datetime.from_string(pline.date)
         else:
-            date_value = datetime.now()
-        elec_context['date_value'] = date_value.strftime("%y%m%d")
+            date_value = fields.Datetime.now()
+        elec_context['date_value'] = fields.Datetime.to_string(date_value)
         return elec_context
 
     @api.model
@@ -689,19 +688,18 @@ class DTAFileGenerator(models.TransientModel):
             context=context
         )
         dta = ''
-        payment_obj = self.pool['payment.order']
-        attachment_obj = self.pool['ir.attachment']
-        res_partner_bank_obj = self.pool['res.partner.bank']
-        payment = payment_obj.browse(cr, uid, data['id'], context=context)
+        payment_obj = self.env['payment.order']
+        attachment_obj = self.env['ir.attachment']
+        res_partner_bank_obj = self.env['res.partner.bank']
+        payment = payment_obj.browse(data['id'])
         seq = 1
         amount_tot = 0
         amount_currency_tot = 0
 
         for pline in payment.line_ids:
             elec_context = self._process_payment_lines(
-                cr, uid, data, pline,
+                data, pline,
                 elec_context, seq,
-                context=context
             )
             # si compte iban -> iban (836)
             # si payment structure  -> bvr (826)
@@ -749,11 +747,8 @@ class DTAFileGenerator(models.TransientModel):
             dta = dta + record_gt890(elec_context, self.pool, False).generate()
         dta_data = _u2a(dta)
         dta_data = base64.encodestring(dta)
-        payment_obj.set_done(cr, uid, [data['id']], context)
-        dta_file_name = 'DTA%s.txt' % time.strftime(
-            "%Y-%m-%d_%H:%M:%S",
-            time.gmtime()
-        )
+        payment_obj.set_done([data['id']])
+        dta_file_name = 'DTA%s.txt' % fields.Datetime.to_string(time.gmtime())
         dta_dict = {
             'name': dta_file_name,
             'datas': dta_data,
@@ -761,7 +756,7 @@ class DTAFileGenerator(models.TransientModel):
             'res_model': 'payment.order',
             'res_id': data['id']
         }
-        attachment_obj.create(cr, uid, dta_dict, context=context)
+        attachment_obj.create(dta_dict)
         return dta_data
 
     @api.model
@@ -774,5 +769,5 @@ class DTAFileGenerator(models.TransientModel):
         data['form'] = {}
         data['ids'] = active_ids
         data['id'] = active_id
-        dta_file = self._create_dta(cr, uid, data, context)
+        dta_file = self._create_dta(data)
         return dta_file
